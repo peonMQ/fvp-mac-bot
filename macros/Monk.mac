@@ -1,0 +1,66 @@
+#include includes\ini.inc
+#include includes\common.inc
+#include includes\commonMelee.inc
+#include includes\wait4rez.inc
+#turbo 150
+
+Sub Main
+  /declare monkIniFileName        string  outer "ini/${MacroQuest.Server}/Monk_${Me.CleanName}.ini"
+
+	/call CheckPlugin MQ2EQBC
+	/call CheckPlugin MQ2NetBots
+	/call CheckPlugin MQ2Moveutils
+	/call CheckPlugin MQ2Cast
+  /call CheckPlugin MQ2Nav
+
+  /call InitMonkIni ${monkIniFileName}
+  /if (${Macro.Return} == 0) {
+    /echo "Bootstrapped INI file, please update variables in: ${monkIniFileName}"
+    /endmacro
+  }
+
+  /echo "Monk rock'n'rolling!"
+  /bca "Monk rock'n'rolling!"
+
+  :MonkLoop
+    /call Wait4Rez_Background_Events
+    /if (${Me.Invis}) /goto :MonkLoop
+    /if (${Stick.Status.Equal[ON]} || ${Navigation.Active}) /goto :MonkLoop
+
+    | /call DoKill
+    /call DoMeleeDps DoPunchesAndKicks
+    /call DoCommonEvents
+    /goto :MonkLoop
+/return
+
+Sub DoPunchesAndKicks
+  /if (${Debug} || ${Debug_Melee}) /echo |- DoPunchesAndKicks ==>
+
+  /if (${Me.AbilityReady[tigerclaw]}) {
+    /doability tigerclaw
+  }
+
+  /if (${Me.AbilityReady[flyingkick]}) {
+      /doability flyingkick
+  }
+
+  /if (${Debug} || ${Debug_Melee}) /echo <== DoPunchesAndKicks -|
+/return
+
+Sub InitMonkIni(string iniFileName)
+  /declare monkOptions       string  outer "MonkOptions"
+  /declare parentInitResult  int     local 1
+
+  /call InitGenralIni "${iniFileName}"
+  /varset parentInitResult ${Macro.Return}
+
+  /call InitMeleeIni "${iniFileName}"
+  /if (${Macro.Return} == 0) {
+    /varset parentInitResult 0
+  }
+
+  /call InitWait4Rez "${iniFileName}"
+  /if (${Macro.Return} == 0) {
+    /varset parentInitResult 0
+  }
+/return ${parentInitResult}

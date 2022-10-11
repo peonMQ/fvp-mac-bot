@@ -1,0 +1,8 @@
+[submodule "lua/emmylua/mq"]
+	path = lua/emmylua/mq
+	url = https://github.com/projecteon/mq-definitions.git
+  branch = master
+[submodule "lua/emmylua/imgui"]
+	path = lua/emmylua/imgui
+	url = https://github.com/projecteon/mq-imgui-definitions.git
+	branch = main

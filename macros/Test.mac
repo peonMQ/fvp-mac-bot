@@ -1,0 +1,136 @@
+#include includes\spell_routines.inc
+#include includes\common.inc
+#include includes\commonCaster.inc
+#include includes\commonBuffer.inc
+#include includes\commonPet.inc
+#include includes\commonNuke.inc
+#include includes\commonSpell.inc
+
+Sub Main(string Search)
+    /declare testIniFileName        string  local "ini/${MacroQuest.Server}/Test_${Me.CleanName}.ini"
+    /if (!${Defined[iniBuffDimensions]})                /declare iniBuffDimensions              int     outer 3 
+    /if (!${Defined[iniSelfBuffDimensions]})            /declare iniSelfBuffDimensions          int     outer 2
+    /if (!${Defined[Debug]})  		                    /declare Debug       	                bool  	outer TRUE 
+    
+    /if (!${Defined[aggroAnimation]})                   /declare aggroAnimation string  outer |5|8|12|17|18|32|42|44|80|106|129|144|
+
+
+    | /echo ${SpellTimer[${Target.ID},"Snare"]}
+
+    | /call CheckNetBotsCombatState
+    | /call CheckNpcAnimation
+    | /echo ${Me.CombatState}
+    | /echo ${Me.PctAggro}
+    | /echo ${Me.Name}
+    | /echo ${NetBots[${Me.Name}].Invis}
+    | /call CheckNPCInRange
+    | /echo CheckNPCInRange: ${Bool[${Macro.Return}]}
+
+    | /call CreateTimer ${Me.Name}_nbh_timer 30
+    | /delay 10
+    | /call CheckTimerExpired "${Me.Name}_nbh_timer"   
+    | /call CheckTimerExpired "Newt_nbh_timer"   
+    | /delay 50
+    | /call CheckTimerExpired "${Me.Name}_nbh_timer"  
+    
+
+    | /call InitLoot
+    | /call Event_SellItems
+    | :TestLoop
+    |     /doevents
+    |     /goto :TestLoop
+
+    
+    | /call dynamicSub checkMezz
+    | /call dynamicSub checkMezz2
+    
+    /varset Debug FALSE
+    /call InitSpell
+    /call IniSpellArray ${testIniFileName} "SelfBuffs" SelfBuffs
+    
+    /declare k                          int     local
+    /declare s                          int     local
+    
+    /for k 1 to 2
+        /for s 1 to ${spellPropsDimentions}
+                /echo |- [${k},${s}] > ${${arrayName}[${k},${s}]}
+        /next s
+    /next k
+
+/return 
+
+Sub dynamicSub(subToCheck)
+    /if (${Defined[subToCheck]}) {
+        /call ${subToCheck}
+    }
+/return
+
+Sub checkMezz
+    /declare mezzRadius       int    local 40
+    /echo "DoMezz playerstate 4" ${SpawnCount[playerstate 4 radius ${mezzRadius}]}
+/return
+
+
+Sub iniBuffs2(string INIFile, string section, string keyName)
+    /declare Keys       string  local
+    /declare k          int     local
+    /declare s          int     local
+
+    /varset Keys ${Ini[${INIFile},${section}]}
+    :TrimKeys
+        /if (${Keys.Right[1].Equal[|]}) /varset Keys ${Keys.Left[${Math.Calc[${Keys.Length}-1]}]}
+        
+        /if (${Keys.Right[1].Equal[|]}) /goto :TrimKeys
+
+        /echo "2" ${Keys}
+        /declare numberOfBuffs int local 0
+
+        /declare key string local
+        /for k 1 to ${Math.Calc[${Keys.Count[|]}+1]}
+            /varset key ${Keys.Arg[${k},|]}
+            /if (${key.Left[-2].Equal[${keyName}]}) {
+                /varcalc numberOfBuffs ${numberOfBuffs}+1
+            } else /if (${key.Left[-1].Equal[${keyName}]}) {
+                /varcalc numberOfBuffs ${numberOfBuffs}+1
+            }
+        /next k
+        /echo ${keyName} " - " ${numberOfBuffs}
+/return
+
+Sub CheckNetBotsCombatState
+    /echo |- CheckNetBotsCombatState ==>
+    /echo |- Look for any of: COMBAT, DEBUFFED, COOLDOWN, ACTIVE, RESTING
+    /echo |- Possibly: 1=debuffed, 2=combat cooldown, 3=stand, 4=sit
+    /if (${NetBots.Counts} < 1) {
+        /if (${NetBots.Counts} < 2) /echo Not enough Nebots clients, current: ${NetBots.Counts} 
+        /echo <== CheckNetBotsCombatState -|
+        /return
+    }
+
+    /declare netbotsClient string local
+    /declare x int local
+    /for x 1 to ${NetBots.Counts} {
+        /varset netbotsClient "${NetBots.Client[${x}]}"
+        /echo ${netbotsClient} CombatState: ${NetBots[${netbotsClient}].CombatState}
+        /echo ${netbotsClient} Attacking: ${NetBots[${netbotsClient}].Attacking}
+        
+        /next x
+    }
+
+    /echo <== CheckNetBotsCombatState -|
+/return
+
+Sub CheckNpcAnimation
+    /echo |- CheckNpcAnimation ==>
+
+    | /echo ${If[${Select[${NearestSpawn[Player1].Animation},5]},Melee Active,Melee Inactive]}
+
+    /if (!${Defined[aggroAnim]}) /declare aggroAnim string outer |5|8|12|17|18|32|42|44|80|106|129|144|
+
+    /echo ${NearestSpawn[1, npc radius 150].Name} Animation: ${NearestSpawn[1, npc radius 100].Animation}
+
+    /echo ${NearestSpawn[1, npc radius 150].Name} is agro: ${Bool[${aggroAnim.Find[|${NearestSpawn[1, npc radius 100].Animation}|]}]}
+    |/echo ${aggroAnim.Find[|${Spawn[${tempID}].Animation}|]}
+
+    /echo <== CheckNpcAnimation -|
+/return

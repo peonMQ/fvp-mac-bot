@@ -1,0 +1,74 @@
+#include includes\spell_routines.inc
+#turbo 20
+
+Sub Main(numberOfStacks)
+  /declare drinkSpell string outer Abundant Drink
+  /declare foodSpell string outer Abundant Food
+  /declare drinkItem string outer Summoned: Globe of Water
+  /declare foodItem string outer Summoned: Black Bread
+
+  /if (${Defined[numberOfStacks]}) /declare numberOfStacks int outer 1
+  /if (${numberOfStacks}<1 || ${numberOfStacks}>20) /varset numberOfStacks 1
+
+  /echo Summoning ${numberOfStacks} stack(s) of food and drink.
+  /call SummonDrinkFood
+  /echo Done summoning stuff!
+/return
+
+Sub SummonDrinkFood
+  /echo |- SummonDrinkFood ==>
+
+  /declare foodCount  int local
+  /declare drinkCount int local
+
+  /if (${FindItemCount[=${drinkItem}]} < ${Math.Calc[20*${numberOfStacks}]} || ${FindItemCount[=${foodItem}]} < ${Math.Calc[20*${numberOfStacks}]}) {
+    /if (!${Me.Gem[${drinkSpell}]}) {
+      /echo |- Missing drink spell: ${drinkSpell}
+      /echo <== SummonDrinkFood -|
+      /endmac
+    }
+
+    /if (!${Me.Gem[${foodSpell}]}) {
+      /echo |- Missing food spell: ${foodSpell}
+      /echo <== SummonDrinkFood -|
+      /endmac
+    }
+
+    :BigLoop
+      /varset drinkCount ${Math.Calc[${FindItemCount[=${drinkItem}]}]}
+      /if (${Me.SpellReady[${drinkSpell}]} && ${Math.Calc[20*${numberOfStacks}]}>${drinkCount}) {
+        :DrinkLoop
+          /if (!${Me.State.Equal[STAND]} || ${Cursor.ID} || ${Me.Casting.ID}) {
+            /delay 2s
+            /autoinv
+            /goto :DrinkLoop
+          }
+          /call Summon "${drinkSpell}" ${DrinkType}
+          /autoinv
+      }
+
+      /varset foodCount ${Math.Calc[${FindItemCount[=${foodItem}]}]}
+      /if (${Me.SpellReady[${foodSpell}]} && ${Math.Calc[20*${numberOfStacks}]}>${foodCount}) {
+        :FoodLoop
+          /if (!${Me.State.Equal[STAND]} || ${Cursor.ID} || ${Me.Casting.ID}) {
+            /autoinv
+            /delay 2s
+            /goto :FoodLoop
+          }
+          /call Summon "${foodSpell}" ${FoodType}
+          /autoinv
+      }
+
+      /if (${Math.Calc[20*${numberOfStacks}]}>=${Math.Calc[${FindItemCount[=${drinkItem}]}+4]}) /goto :BigLoop
+      /if (${Math.Calc[20*${numberOfStacks}]}>=${Math.Calc[${FindItemCount[=${foodItem}]}+4]}) /goto :BigLoop
+  }
+
+  /echo <== SummonDrinkFood -|
+/return
+
+Sub Summon(string itemSpell)
+  /call cast "${itemSpell}" gem${Me.Gem[${itemSpell}]} 0 EmptyCancelCast
+  /delay 5
+  /autoinv
+  /delay 5
+/return
